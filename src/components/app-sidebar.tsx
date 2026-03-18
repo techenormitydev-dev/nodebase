@@ -6,8 +6,11 @@ import {
   HistoryIcon,
   KeyIcon,
   LogOutIcon,
+  MoonIcon,
   StarIcon,
+  SunIcon,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -52,6 +55,7 @@ export const AppSidebar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { hasActiveSubscription, isLoading } = useHasActiveSubscription();
+  const { theme, setTheme } = useTheme();
 
   return (
     <Sidebar collapsible="icon">
@@ -59,8 +63,8 @@ export const AppSidebar = () => {
         <SidebarMenuItem>
           <SidebarMenuButton asChild className="gap-x-4 h-10 px-4">
             <Link href="/" prefetch>
-              <Image src="/logos/logo.svg" alt="Nodebase" width={30} height={30} />
-              <span className="font-semibold text-sm">Nodebase</span>
+              <Image src="/logos/logo.svg" alt="Mindflow" width={30} height={30} />
+              <span className="font-semibold text-sm">Mindflow</span>
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
@@ -116,6 +120,16 @@ export const AppSidebar = () => {
             >
               <CreditCardIcon className="h-4 w-4" />
               <span>Billing Portal</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Toggle theme"
+              className="gap-x-4 h-10 px-4"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
+              <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

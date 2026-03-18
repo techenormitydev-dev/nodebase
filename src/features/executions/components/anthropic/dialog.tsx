@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useCredentialsByType } from "@/features/credentials/hooks/use-credentials";
 import { CredentialType } from "@/generated/prisma";
@@ -34,12 +34,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Image from "next/image";
+import { VariablePicker } from "@/components/variable-picker";
+import type { UpstreamVariable } from "@/features/editor/lib/get-upstream-variables";
 
 const formSchema = z.object({
   variableName: z
     .string()
     .min(1, { message: "Variable name is required" })
-    .regex(/^[A-Za-z_$][A-Za-z0-9_$]*$/, { 
+    .regex(/^[A-Za-z_$][A-Za-z0-9_$]*$/, {
       message: "Variable name must start with a letter or underscore and container only letters, numbers, and underscores",
     }),
   credentialId: z.string().min(1, "Credential is required"),
@@ -54,6 +56,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: z.infer<typeof formSchema>) => void;
   defaultValues?: Partial<AnthropicFormValues>;
+  upstreamVariables?: UpstreamVariable[];
 };
 
 export const AnthropicDialog = ({
@@ -61,8 +64,9 @@ export const AnthropicDialog = ({
   onOpenChange,
   onSubmit,
   defaultValues = {},
+  upstreamVariables = [],
 }: Props) => {
-  const { 
+  const {
     data: credentials,
     isLoading: isLoadingCredentials,
   } = useCredentialsByType(CredentialType.ANTHROPIC);
@@ -77,7 +81,6 @@ export const AnthropicDialog = ({
     },
   });
 
-  // Reset form values when dialog opens with new defaults
   useEffect(() => {
     if (open) {
       form.reset({
@@ -88,6 +91,30 @@ export const AnthropicDialog = ({
       });
     }
   }, [open, defaultValues, form]);
+
+  const systemPromptRef = useRef<HTMLTextAreaElement>(null);
+  const userPromptRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertAtCursor = (
+    ref: React.RefObject<HTMLTextAreaElement | null>,
+    fieldName: "systemPrompt" | "userPrompt",
+    variable: string,
+  ) => {
+    const el = ref.current;
+    const currentValue = (form.getValues(fieldName) as string) || "";
+    if (el) {
+      const start = el.selectionStart ?? currentValue.length;
+      const end = el.selectionEnd ?? start;
+      const newValue = currentValue.slice(0, start) + variable + currentValue.slice(end);
+      form.setValue(fieldName, newValue, { shouldValidate: true });
+      requestAnimationFrame(() => {
+        el.setSelectionRange(start + variable.length, start + variable.length);
+        el.focus();
+      });
+    } else {
+      form.setValue(fieldName, currentValue + variable, { shouldValidate: true });
+    }
+  };
 
   const watchVariableName = form.watch("variableName") || "myAnthropic";
 
@@ -179,12 +206,22 @@ export const AnthropicDialog = ({
               name="systemPrompt"
               render={({ field }) => (
               <FormItem>
-                <FormLabel>System Prompt (Optional)</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>System Prompt (Optional)</FormLabel>
+                  <VariablePicker
+                    variables={upstreamVariables}
+                    onSelect={(v) => insertAtCursor(systemPromptRef, "systemPrompt", v)}
+                  />
+                </div>
                 <FormControl>
                   <Textarea
                     placeholder="You are a helpful assistant."
                     className="min-h-[80px] font-mono text-sm"
                     {...field}
+                    ref={(el) => {
+                      field.ref(el);
+                      systemPromptRef.current = el;
+                    }}
                   />
                 </FormControl>
                   <FormDescription>
@@ -199,12 +236,22 @@ export const AnthropicDialog = ({
               name="userPrompt"
               render={({ field }) => (
               <FormItem>
-                <FormLabel>User Prompt</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>User Prompt</FormLabel>
+                  <VariablePicker
+                    variables={upstreamVariables}
+                    onSelect={(v) => insertAtCursor(userPromptRef, "userPrompt", v)}
+                  />
+                </div>
                 <FormControl>
                   <Textarea
-                     placeholder="Summarize this text: {{json httpResponse.data}}"
+                    placeholder="Summarize this text: {{json httpResponse.data}}"
                     className="min-h-[120px] font-mono text-sm"
                     {...field}
+                    ref={(el) => {
+                      field.ref(el);
+                      userPromptRef.current = el;
+                    }}
                   />
                 </FormControl>
                   <FormDescription>

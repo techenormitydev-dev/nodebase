@@ -7,6 +7,7 @@ import { AnthropicDialog, AnthropicFormValues } from "./dialog";
 import { useNodeStatus } from "../../hooks/use-node-status";
 import { fetchAnthropicRealtimeToken } from "./actions";
 import { ANTHROPIC_CHANNEL_NAME } from "@/inngest/channels/anthropic";
+import { getUpstreamVariables } from "@/features/editor/lib/get-upstream-variables";
 
 type AnthropicNodeData = {
   variableName?: string;
@@ -19,7 +20,8 @@ type AnthropicNodeType = Node<AnthropicNodeData>;
 
 export const AnthropicNode = memo((props: NodeProps<AnthropicNodeType>) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { setNodes } = useReactFlow();
+  const { setNodes, getNodes, getEdges } = useReactFlow();
+  const upstreamVariables = getUpstreamVariables(props.id, getNodes(), getEdges());
 
   const nodeStatus = useNodeStatus({
     nodeId: props.id,
@@ -57,6 +59,7 @@ export const AnthropicNode = memo((props: NodeProps<AnthropicNodeType>) => {
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
         defaultValues={nodeData}
+        upstreamVariables={upstreamVariables}
       />
       <BaseExecutionNode
         {...props}

@@ -1,36 +1,184 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mindflow
 
-## Getting Started
+**Visual workflow automation platform powered by AI** — build automations between your tools without writing code.
 
-First, run the development server:
+Nodebase is a Zapier/Make alternative built AI-native from day one. Connect triggers, AI models, and services using a drag-and-drop node editor. Runs reliably in the background with real-time execution tracking.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+> Built as a production-grade SaaS showcase: visual node editor, multi-LLM support, background job processing, real-time execution monitoring, and subscription billing — all in one stack.
+
+---
+
+## Demo
+
+<!-- Add a GIF/video of the workflow editor here -->
+<!-- ![Nodebase workflow editor demo](./docs/demo.gif) -->
+
+**Live URL:** _Coming soon_
+
+---
+
+## Features
+
+### Workflow Editor
+- Drag-and-drop canvas built with React Flow
+- Connect nodes visually — no code required
+- Real-time execution status per node (via Inngest Realtime)
+
+### Triggers
+| Node | Description |
+|---|---|
+| Manual | Trigger workflows on demand |
+| Cron | Schedule with any cron expression + timezone |
+| Google Forms | Fires on form submission via webhook |
+| Stripe | Fires on Stripe payment events |
+
+### Actions
+| Node | Description |
+|---|---|
+| OpenAI | GPT-4 with system/user prompt + variable templating |
+| Anthropic | Claude Sonnet with system/user prompt + variable templating |
+| Gemini | Gemini 2.0 Flash with system/user prompt + variable templating |
+| Slack | Send messages via webhook |
+| Discord | Send messages via webhook |
+| HTTP Request | Make any GET/POST/PUT/PATCH/DELETE request |
+| Transform | Reshape data using JSONata expressions |
+| Conditional | Branch execution with if/else logic |
+| Error Handler | Catch failures and route to recovery steps |
+
+### Platform
+- **Variable templating** — pass data between nodes using `{{nodeName.field}}` (Handlebars)
+- **Execution history** — full input/output per node, success/failure per run
+- **Credential vault** — encrypted storage for API keys (OpenAI, Anthropic, Gemini)
+- **Subscription billing** — plan-gated features via Polar
+- **Auth** — email/password + OAuth (GitHub, Google) via Better Auth
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 15 (App Router, Turbopack) |
+| Language | TypeScript (strict) |
+| API | tRPC 11 + React Query |
+| Database | PostgreSQL + Prisma 6 |
+| Background jobs | Inngest |
+| Real-time | @inngest/realtime |
+| Node editor | React Flow (@xyflow/react) |
+| AI SDKs | Vercel AI SDK (OpenAI, Anthropic, Gemini) |
+| Templating | Handlebars + JSONata |
+| Auth | Better Auth + Polar OAuth |
+| Billing | Polar |
+| Styling | Tailwind CSS 4 + Radix UI |
+| Encryption | Cryptr |
+| Error tracking | Sentry |
+
+---
+
+## Architecture
+
+```
+User triggers workflow
+        ↓
+Inngest event fired
+        ↓
+executeWorkflow function
+        ↓
+Nodes sorted by dependency (topological sort)
+        ↓
+Each node executor runs in order
+  - Context accumulates between nodes
+  - Conditional branches filter execution path
+  - Error handler catches failures
+        ↓
+Execution record saved (SUCCESS / FAILED)
+Real-time status updates streamed to UI
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Key design decisions:**
+- **Inngest over raw queues** — built-in retries, step functions, cron, and realtime out of the box. No need to manage SQS/BullMQ infrastructure.
+- **tRPC over REST** — end-to-end type safety from DB schema to React component. Eliminates a whole class of runtime errors.
+- **Handlebars for templating** — lets non-technical users reference data from previous nodes with `{{slack.response}}` without writing code.
+- **JSONata for transforms** — a query language purpose-built for JSON reshaping, far more expressive than custom mapping UIs.
+- **Topological sort for DAG execution** — correctly handles branching/merging workflows without hardcoding execution order.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+```
+src/
+├── app/                    # Next.js App Router pages
+│   ├── workflows/          # Workflow list + editor
+│   ├── executions/         # Execution history + detail
+│   └── credentials/        # API key management
+├── features/               # Feature-based modules
+│   ├── workflows/          # Workflow editor, node canvas
+│   ├── executions/         # Execution runner, executor registry
+│   ├── triggers/           # Trigger node components + executors
+│   └── actions/            # Action node components + executors
+├── inngest/                # Background job functions
+├── trpc/                   # tRPC routers
+├── lib/                    # Auth, encryption, shared utils
+└── config/                 # Node registry, app config
+prisma/
+└── schema.prisma           # Database schema
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Local Setup
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Prerequisites
+- Node.js 20+
+- PostgreSQL database
+- Inngest CLI (`npm i -g inngest-cli`)
 
-## Deploy on Vercel
+### Environment Variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```env
+DATABASE_URL=
+BETTER_AUTH_SECRET=
+POLAR_ACCESS_TOKEN=
+POLAR_WEBHOOK_SECRET=
+ENCRYPTION_KEY=
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+SENTRY_DSN=
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# OAuth (optional)
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+```
+
+### Run
+
+```bash
+npm install
+npx prisma migrate dev
+npm run dev:all   # starts Next.js + Inngest dev server simultaneously
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+---
+
+## Roadmap
+
+- [ ] Email node (Gmail / SMTP)
+- [ ] Google Sheets read/write
+- [ ] Workflow templates gallery
+- [ ] Inbound webhook trigger (generic)
+- [ ] HubSpot / Notion / Airtable integrations
+- [ ] Dark/light mode toggle
+- [ ] Workflow duplication
+- [ ] Re-run failed executions
+- [ ] Team workspaces with roles
+- [ ] Landing page
+
+---
+
+## License
+
+MIT

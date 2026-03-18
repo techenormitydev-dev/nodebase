@@ -3,6 +3,7 @@
 import { useReactFlow, type Node, type NodeProps } from "@xyflow/react";
 import { GlobeIcon } from "lucide-react";
 import { memo, useState } from "react";
+import { getUpstreamVariables } from "@/features/editor/lib/get-upstream-variables";
 import { BaseExecutionNode } from "../base-execution-node";
 import { HttpRequestFormValues, HttpRequestDialog } from "./dialog";
 import { useNodeStatus } from "../../hooks/use-node-status";
@@ -20,7 +21,8 @@ type HttpRequestNodeType = Node<HttpRequestNodeData>;
 
 export const HttpRequestNode = memo((props: NodeProps<HttpRequestNodeType>) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { setNodes } = useReactFlow();
+  const { setNodes, getNodes, getEdges } = useReactFlow();
+  const upstreamVariables = getUpstreamVariables(props.id, getNodes(), getEdges());
 
   const nodeStatus = useNodeStatus({
     nodeId: props.id,
@@ -58,6 +60,7 @@ export const HttpRequestNode = memo((props: NodeProps<HttpRequestNodeType>) => {
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
         defaultValues={nodeData}
+        upstreamVariables={upstreamVariables}
       />
       <BaseExecutionNode
         {...props}

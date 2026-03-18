@@ -2,6 +2,7 @@
 
 import { useReactFlow, type Node, type NodeProps, Position } from "@xyflow/react";
 import { memo, useState } from "react";
+import { getUpstreamVariables } from "@/features/editor/lib/get-upstream-variables";
 import { GitFork } from "lucide-react";
 import { ConditionalDialog, ConditionalFormValues } from "./dialog";
 import { useNodeStatus } from "../../hooks/use-node-status";
@@ -21,7 +22,8 @@ type ConditionalNodeType = Node<ConditionalNodeData>;
 
 export const ConditionalNode = memo((props: NodeProps<ConditionalNodeType>) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { setNodes, setEdges } = useReactFlow();
+  const { setNodes, setEdges, getNodes, getEdges } = useReactFlow();
+  const upstreamVariables = getUpstreamVariables(props.id, getNodes(), getEdges());
 
   const nodeStatus = useNodeStatus({
     nodeId: props.id,
@@ -62,6 +64,7 @@ export const ConditionalNode = memo((props: NodeProps<ConditionalNodeType>) => {
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
         defaultValues={nodeData}
+        upstreamVariables={upstreamVariables}
       />
       <WorkflowNode
         name="Conditional"

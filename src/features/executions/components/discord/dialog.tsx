@@ -22,14 +22,16 @@ import { Textarea } from "@/components/ui/textarea";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { VariablePicker } from "@/components/variable-picker";
+import type { UpstreamVariable } from "@/features/editor/lib/get-upstream-variables";
 
 const formSchema = z.object({
   variableName: z
     .string()
     .min(1, { message: "Variable name is required" })
-    .regex(/^[A-Za-z_$][A-Za-z0-9_$]*$/, { 
+    .regex(/^[A-Za-z_$][A-Za-z0-9_$]*$/, {
       message: "Variable name must start with a letter or underscore and container only letters, numbers, and underscores",
     }),
   username: z.string().optional(),
@@ -47,6 +49,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: z.infer<typeof formSchema>) => void;
   defaultValues?: Partial<DiscordFormValues>;
+  upstreamVariables?: UpstreamVariable[];
 };
 
 export const DiscordDialog = ({
@@ -54,6 +57,7 @@ export const DiscordDialog = ({
   onOpenChange,
   onSubmit,
   defaultValues = {},
+  upstreamVariables = [],
 }: Props) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -65,7 +69,6 @@ export const DiscordDialog = ({
     },
   });
 
-  // Reset form values when dialog opens with new defaults
   useEffect(() => {
     if (open) {
       form.reset({
@@ -76,6 +79,25 @@ export const DiscordDialog = ({
       });
     }
   }, [open, defaultValues, form]);
+
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertAtCursor = (variable: string) => {
+    const el = contentRef.current;
+    const currentValue = form.getValues("content") || "";
+    if (el) {
+      const start = el.selectionStart ?? currentValue.length;
+      const end = el.selectionEnd ?? start;
+      const newValue = currentValue.slice(0, start) + variable + currentValue.slice(end);
+      form.setValue("content", newValue, { shouldValidate: true });
+      requestAnimationFrame(() => {
+        el.setSelectionRange(start + variable.length, start + variable.length);
+        el.focus();
+      });
+    } else {
+      form.setValue("content", currentValue + variable, { shouldValidate: true });
+    }
+  };
 
   const watchVariableName = form.watch("variableName") || "myDiscord";
 
@@ -144,12 +166,22 @@ export const DiscordDialog = ({
               name="content"
               render={({ field }) => (
               <FormItem>
-                <FormLabel>Message Content</FormLabel>
+                <div className="flex items-center justify-between">
+                  <FormLabel>Message Content</FormLabel>
+                  <VariablePicker
+                    variables={upstreamVariables}
+                    onSelect={insertAtCursor}
+                  />
+                </div>
                 <FormControl>
                   <Textarea
                     placeholder="Summary: {{myGemini.text}}"
                     className="min-h-[80px] font-mono text-sm"
                     {...field}
+                    ref={(el) => {
+                      field.ref(el);
+                      contentRef.current = el;
+                    }}
                   />
                 </FormControl>
                   <FormDescription>

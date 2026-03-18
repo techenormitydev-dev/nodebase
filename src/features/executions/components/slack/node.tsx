@@ -2,6 +2,7 @@
 
 import { useReactFlow, type Node, type NodeProps } from "@xyflow/react";
 import { memo, useState } from "react";
+import { getUpstreamVariables } from "@/features/editor/lib/get-upstream-variables";
 import { BaseExecutionNode } from "../base-execution-node";
 import { SlackDialog, SlackFormValues } from "./dialog";
 import { useNodeStatus } from "../../hooks/use-node-status";
@@ -18,7 +19,8 @@ type SlackNodeType = Node<SlackNodeData>;
 
 export const SlackNode = memo((props: NodeProps<SlackNodeType>) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { setNodes } = useReactFlow();
+  const { setNodes, getNodes, getEdges } = useReactFlow();
+  const upstreamVariables = getUpstreamVariables(props.id, getNodes(), getEdges());
 
   const nodeStatus = useNodeStatus({
     nodeId: props.id,
@@ -56,6 +58,7 @@ export const SlackNode = memo((props: NodeProps<SlackNodeType>) => {
         onOpenChange={setDialogOpen}
         onSubmit={handleSubmit}
         defaultValues={nodeData}
+        upstreamVariables={upstreamVariables}
       />
       <BaseExecutionNode
         {...props}

@@ -29,14 +29,16 @@ import { Textarea } from "@/components/ui/textarea";
 import z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { VariablePicker } from "@/components/variable-picker";
+import type { UpstreamVariable } from "@/features/editor/lib/get-upstream-variables";
 
 const formSchema = z.object({
   variableName: z
     .string()
     .min(1, { message: "Variable name is required" })
-    .regex(/^[A-Za-z_$][A-Za-z0-9_$]*$/, { 
+    .regex(/^[A-Za-z_$][A-Za-z0-9_$]*$/, {
       message: "Variable name must start with a letter or underscore and container only letters, numbers, and underscores",
     }),
   endpoint: z.string()
@@ -54,6 +56,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: z.infer<typeof formSchema>) => void;
   defaultValues?: Partial<HttpRequestFormValues>;
+  upstreamVariables?: UpstreamVariable[];
 };
 
 export const HttpRequestDialog = ({
@@ -61,6 +64,7 @@ export const HttpRequestDialog = ({
   onOpenChange,
   onSubmit,
   defaultValues = {},
+  upstreamVariables = [],
 }: Props) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -72,7 +76,6 @@ export const HttpRequestDialog = ({
     },
   });
 
-  // Reset form values when dialog opens with new defaults
   useEffect(() => {
     if (open) {
       form.reset({
@@ -83,6 +86,51 @@ export const HttpRequestDialog = ({
       });
     }
   }, [open, defaultValues, form]);
+
+  const endpointRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertAtCursorInput = (
+    ref: React.RefObject<HTMLInputElement | null>,
+    fieldName: "endpoint",
+    variable: string,
+  ) => {
+    const el = ref.current;
+    const currentValue = (form.getValues(fieldName) as string) || "";
+    if (el) {
+      const start = el.selectionStart ?? currentValue.length;
+      const end = el.selectionEnd ?? start;
+      const newValue = currentValue.slice(0, start) + variable + currentValue.slice(end);
+      form.setValue(fieldName, newValue, { shouldValidate: true });
+      requestAnimationFrame(() => {
+        el.setSelectionRange(start + variable.length, start + variable.length);
+        el.focus();
+      });
+    } else {
+      form.setValue(fieldName, currentValue + variable, { shouldValidate: true });
+    }
+  };
+
+  const insertAtCursorTextarea = (
+    ref: React.RefObject<HTMLTextAreaElement | null>,
+    fieldName: "body",
+    variable: string,
+  ) => {
+    const el = ref.current;
+    const currentValue = (form.getValues(fieldName) as string) || "";
+    if (el) {
+      const start = el.selectionStart ?? currentValue.length;
+      const end = el.selectionEnd ?? start;
+      const newValue = currentValue.slice(0, start) + variable + currentValue.slice(end);
+      form.setValue(fieldName, newValue, { shouldValidate: true });
+      requestAnimationFrame(() => {
+        el.setSelectionRange(start + variable.length, start + variable.length);
+        el.focus();
+      });
+    } else {
+      form.setValue(fieldName, currentValue + variable, { shouldValidate: true });
+    }
+  };
 
   const watchVariableName = form.watch("variableName") || "myApiCall";
   const watchMethod = form.watch("method");
@@ -162,11 +210,21 @@ export const HttpRequestDialog = ({
               name="endpoint"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Endpoint URL</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Endpoint URL</FormLabel>
+                    <VariablePicker
+                      variables={upstreamVariables}
+                      onSelect={(v) => insertAtCursorInput(endpointRef, "endpoint", v)}
+                    />
+                  </div>
                   <FormControl>
                     <Input
                       placeholder="https://api.example.com/users/{{httpResponse.data.id}}"
                       {...field}
+                      ref={(el) => {
+                        field.ref(el);
+                        endpointRef.current = el;
+                      }}
                     />
                   </FormControl>
                   <FormDescription>
@@ -182,14 +240,24 @@ export const HttpRequestDialog = ({
                 name="body"
                 render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Request Body</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Request Body</FormLabel>
+                    <VariablePicker
+                      variables={upstreamVariables}
+                      onSelect={(v) => insertAtCursorTextarea(bodyRef, "body", v)}
+                    />
+                  </div>
                   <FormControl>
                     <Textarea
                       placeholder={
-                        '{\n  "userId": "{{httpResponse.data.id}}",\n  "name": "{{httpResponse.data.name}}",\n  "items": "{{httpResponse.data.items}}"\n}'
+                        '{\n  "userId": "{{httpResponse.data.id}}",\n  "name": "{{httpResponse.data.name}}"\n}'
                       }
                       className="min-h-[120px] font-mono text-sm"
                       {...field}
+                      ref={(el) => {
+                        field.ref(el);
+                        bodyRef.current = el;
+                      }}
                     />
                   </FormControl>
                   <FormDescription>
