@@ -10,7 +10,8 @@
     "ngrok:dev": "dotenv -- ngrok http --url=$NGROK_URL 3000",
     "format": "biome format --write",
     "inngest:dev": "inngest-cli dev",
-    "dev:all": "dotenv -- mprocs"
+    "dev:all": "dotenv -- mprocs",
+    "generate-ppt": "node scripts/generate-ppt.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.23",
@@ -101,6 +102,7 @@
     "dotenv-cli": "^10.0.0",
     "inngest-cli": "^1.12.1",
     "mprocs": "^0.7.3",
+    "pptxgenjs": "^3.12.0",
     "prisma": "^6.16.3",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
